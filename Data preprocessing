@@ -1,0 +1,104 @@
+{
+ "nbformat": 4,
+ "nbformat_minor": 5,
+ "metadata": {
+  "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
+  "language_info": {"name": "python", "version": "3.10.0"}
+ },
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": ["# ðŸŒ± CarbonTrack â€” Data Preprocessing\n\n**Project:** Predicting Household Carbon Footprint Using Lifestyle Data  \n**Author:** Mohamed Aries B (RA2311026050100)  \n**Department:** CSE - AIML, SRM Institute of Science and Technology  \n\n---\n\nThis notebook covers **Phase 2: Data Preprocessing** â€” handling missing values, encoding categorical features, and scaling numerical features to prepare the dataset for model training."]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": ["## 1. Import Libraries"]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": ["import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\nfrom sklearn.preprocessing import LabelEncoder, StandardScaler\nimport sys, os\nsys.path.insert(0, '../src')\nfrom preprocessing import generate_dataset\n\nsns.set_theme(style='whitegrid', font_scale=1.1)\nprint('Libraries imported âœ”')"]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": ["## 2. Load Raw Dataset"]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": ["df = generate_dataset(n=1500, seed=42)\nprint(f'Raw dataset: {df.shape}')\ndf.head()"]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": ["## 3. Step 1 â€” Handle Missing Values\n\n**Strategy:** Median imputation for numerical columns (robust to outliers)."]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": ["print('Missing values BEFORE:')\nprint(df.isnull().sum())\n\nnum_cols = df.select_dtypes(include=[np.number]).columns\nfor col in num_cols:\n    if df[col].isnull().sum() > 0:\n        df[col].fillna(df[col].median(), inplace=True)\n\nprint('\\nMissing values AFTER:')\nprint(df.isnull().sum())"]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": ["## 4. Step 2 â€” Encode Categorical Features\n\nLabel Encoding converts categorical labels to integer codes for model compatibility."]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": ["cat_cols = ['vehicle_type', 'food_habit', 'income_level']\nencoders = {}\nfor col in cat_cols:\n    le = LabelEncoder()\n    df[col] = le.fit_transform(df[col])\n    encoders[col] = dict(zip(le.classes_, le.transform(le.classes_)))\n    print(f'{col}: {encoders[col]}')\n\nprint('\\nDataset after encoding:')\ndf.head()"]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": ["## 5. Step 3 â€” Feature Scaling\n\nStandardScaler transforms features to zero mean and unit variance. This is essential for Linear Regression and ensures fair feature contribution."]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": ["feature_cols = [c for c in df.columns if c != 'carbon_score']\nscaler = StandardScaler()\ndf_scaled = df.copy()\ndf_scaled[feature_cols] = scaler.fit_transform(df[feature_cols])\n\nprint('Feature statistics after scaling:')\ndf_scaled[feature_cols].describe().round(3)"]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": ["## 6. Visualise: Before vs After Scaling"]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": ["fig, axes = plt.subplots(1, 2, figsize=(14, 5))\n\n# Before scaling\naxes[0].boxplot([df['electricity_kwh'], df['fuel_liters'], df['travel_km_day'],\n                 df['water_liters_day'], df['waste_kg_week']],\n               labels=['electricity', 'fuel', 'travel', 'water', 'waste'],\n               patch_artist=True)\naxes[0].set_title('Before Scaling', fontsize=13, fontweight='bold')\naxes[0].set_ylabel('Original Values')\n\n# After scaling\naxes[1].boxplot([df_scaled['electricity_kwh'], df_scaled['fuel_liters'],\n                 df_scaled['travel_km_day'], df_scaled['water_liters_day'],\n                 df_scaled['waste_kg_week']],\n               labels=['electricity', 'fuel', 'travel', 'water', 'waste'],\n               patch_artist=True)\naxes[1].set_title('After StandardScaling', fontsize=13, fontweight='bold')\naxes[1].set_ylabel('Scaled Values')\n\nplt.suptitle('Feature Distribution: Before vs After Scaling', fontsize=14, fontweight='bold')\nplt.tight_layout()\nplt.show()"]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": ["## 7. Save Processed Data"]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": ["os.makedirs('../dataset/processed_data', exist_ok=True)\nos.makedirs('../dataset/raw_data',       exist_ok=True)\n\ndf.to_csv('../dataset/processed_data/carbon_footprint_encoded.csv', index=False)\ndf_scaled.to_csv('../dataset/processed_data/carbon_footprint_scaled.csv', index=False)\nprint('âœ” Encoded dataset saved')\nprint('âœ” Scaled dataset saved')"]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": ["## 8. Preprocessing Summary\n\n| Step | Action | Result |\n|------|--------|--------|\n| 1 | Missing value imputation | ~45 values filled with column median |\n| 2 | Label encoding | 3 categorical columns encoded to integers |\n| 3 | Standard scaling | All features scaled to Î¼=0, Ïƒ=1 |\n\nâœ… **Preprocessing Complete. Proceed to `visualization.ipynb`.**"]
+  }
+ ]
+}
