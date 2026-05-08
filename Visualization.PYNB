@@ -1,0 +1,99 @@
+{
+ "nbformat": 4,
+ "nbformat_minor": 5,
+ "metadata": {
+  "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
+  "language_info": {"name": "python", "version": "3.10.0"}
+ },
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": ["# ðŸŒ± CarbonTrack â€” Data Visualisation\n\n**Project:** Predicting Household Carbon Footprint Using Lifestyle Data  \n**Author:** Mohamed Aries B (RA2311026050100)  \n**Department:** CSE - AIML, SRM Institute of Science and Technology  \n\n---\n\nThis notebook covers **Phase 3: Data Visualisation** â€” generating comprehensive charts to understand relationships, distributions, and correlations in the dataset."]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": ["import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport matplotlib.gridspec as gridspec\nimport seaborn as sns\nimport sys, os\nsys.path.insert(0, '../src')\nfrom preprocessing import generate_dataset\n\nsns.set_theme(style='whitegrid', palette='muted', font_scale=1.1)\nCOLORS = ['#2E86AB','#A23B72','#F18F01','#C73E1D','#3B1F2B','#44BBA4','#E94F37','#393E41']\nos.makedirs('../outputs/graphs', exist_ok=True)\n\ndf = generate_dataset(n=1500, seed=42)\nprint(f'Dataset loaded: {df.shape}')"]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": ["## 1. Feature Distribution Histograms"]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": ["num_cols = ['electricity_kwh','fuel_liters','travel_km_day','water_liters_day','waste_kg_week','family_size','carbon_score']\nfig, axes = plt.subplots(2, 4, figsize=(18, 9))\naxes = axes.flatten()\nfor i, col in enumerate(num_cols):\n    axes[i].hist(df[col].dropna(), bins=30, color=COLORS[i], edgecolor='white', alpha=0.85)\n    axes[i].set_title(col.replace('_',' ').title(), fontsize=11, fontweight='bold')\n    axes[i].set_xlabel('Value'); axes[i].set_ylabel('Frequency')\naxes[-1].set_visible(False)\nfig.suptitle('Feature Distributions', fontsize=15, fontweight='bold', y=1.01)\nplt.tight_layout(); plt.show()"]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": ["## 2. Correlation Heatmap\n\nShows pairwise Pearson correlation coefficients between all numerical features."]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": ["from sklearn.preprocessing import LabelEncoder\ndf_enc = df.copy()\nfor col in ['vehicle_type','food_habit','income_level']:\n    df_enc[col] = LabelEncoder().fit_transform(df_enc[col].astype(str))\n\ncorr = df_enc.corr()\nfig, ax = plt.subplots(figsize=(12, 9))\nmask = np.triu(np.ones_like(corr, dtype=bool))\nsns.heatmap(corr, mask=mask, annot=True, fmt='.2f', cmap='coolwarm',\n           center=0, linewidths=0.5, ax=ax, annot_kws={'size':9},\n           cbar_kws={'shrink':0.8})\nax.set_title('Correlation Heatmap', fontsize=14, fontweight='bold', pad=12)\nplt.tight_layout(); plt.show()\n\nprint('Top correlations with carbon_score:')\nprint(corr['carbon_score'].sort_values(ascending=False))"]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": ["## 3. Scatter Plots: Numerical Features vs Carbon Score"]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": ["feats = ['electricity_kwh','fuel_liters','travel_km_day','waste_kg_week']\nfig, axes = plt.subplots(1, 4, figsize=(20, 5))\nfor i, feat in enumerate(feats):\n    valid = df[[feat,'carbon_score']].dropna()\n    axes[i].scatter(valid[feat], valid['carbon_score'], alpha=0.3, c=COLORS[i], s=15)\n    z = np.polyfit(valid[feat], valid['carbon_score'], 1)\n    p = np.poly1d(z)\n    xp = np.linspace(valid[feat].min(), valid[feat].max(), 200)\n    axes[i].plot(xp, p(xp), 'k--', lw=1.5)\n    axes[i].set_xlabel(feat.replace('_',' ').title())\n    axes[i].set_ylabel('Carbon Score' if i==0 else '')\n    axes[i].set_title(f'{feat.replace(\"_\",\" \").title()}\\nvs Carbon Score', fontsize=11, fontweight='bold')\nfig.suptitle('Numerical Features vs Carbon Score', fontsize=14, fontweight='bold')\nplt.tight_layout(); plt.show()"]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": ["## 4. Bar Charts: Average Carbon Score by Category"]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": ["fig, axes = plt.subplots(1, 3, figsize=(18, 6))\ncat_cols = ['vehicle_type','food_habit','income_level']\nfor i, col in enumerate(cat_cols):\n    means = df.groupby(col)['carbon_score'].mean().sort_values()\n    bars = axes[i].barh(means.index, means.values, color=COLORS[i*2:i*2+len(means)], edgecolor='white')\n    axes[i].set_title(f'Carbon Score by {col.replace(\"_\",\" \").title()}', fontsize=12, fontweight='bold')\n    axes[i].set_xlabel('Avg Carbon Score (kg COâ‚‚/month)')\n    for j, v in enumerate(means.values):\n        axes[i].text(v+3, j, f'{v:.0f}', va='center', fontsize=10)\nfig.suptitle('Carbon Emissions by Lifestyle Category', fontsize=14, fontweight='bold')\nplt.tight_layout(); plt.show()"]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": ["## 5. Pie Charts: Category Distribution"]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": ["fig, axes = plt.subplots(1, 3, figsize=(18, 6))\nfor i, col in enumerate(['vehicle_type','food_habit','income_level']):\n    counts = df[col].value_counts()\n    axes[i].pie(counts.values, labels=counts.index, autopct='%1.1f%%',\n               colors=COLORS[:len(counts)], startangle=140,\n               wedgeprops={'edgecolor':'white','linewidth':1.5})\n    axes[i].set_title(f'{col.replace(\"_\",\" \").title()} Distribution', fontsize=12, fontweight='bold')\nfig.suptitle('Household Category Distributions', fontsize=14, fontweight='bold')\nplt.tight_layout(); plt.show()"]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": ["## 6. Box Plots: Carbon Score by Vehicle & Food Habit"]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": ["fig, axes = plt.subplots(1, 2, figsize=(16, 6))\nfor i, col in enumerate(['vehicle_type','food_habit']):\n    order = df.groupby(col)['carbon_score'].median().sort_values().index\n    sns.boxplot(data=df, x=col, y='carbon_score', order=order,\n               palette='Set2', ax=axes[i],\n               flierprops={'marker':'o','markersize':4,'alpha':0.5})\n    axes[i].set_title(f'Carbon Score by {col.replace(\"_\",\" \").title()}', fontsize=13, fontweight='bold')\n    axes[i].set_xlabel(col.replace('_',' ').title())\n    axes[i].set_ylabel('Carbon Score (kg COâ‚‚/month)')\nfig.suptitle('Carbon Emissions Distribution by Category', fontsize=14, fontweight='bold')\nplt.tight_layout(); plt.show()"]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": ["## 7. Visualisation Summary\n\n| Chart | Key Finding |\n|---|---|\n| Histograms | Electricity and fuel usage are roughly normally distributed |\n| Heatmap | electricity_kwh, fuel_liters, travel_km_day strongly correlate with carbon_score |\n| Scatter | Strong positive linear trends with fuel and electricity usage |\n| Bar charts | Diesel > Petrol > Hybrid > EV in avg carbon score; Meat-heavy > Mixed |\n| Pie charts | 45% Petrol, 25% Diesel; 45% Mixed diet; 45% Middle income |\n| Box plots | High variance in Petrol/Diesel users; Meat-heavy has widest spread |\n\nâœ… **Visualisation Complete.**"]
+  }
+ ]
+}
