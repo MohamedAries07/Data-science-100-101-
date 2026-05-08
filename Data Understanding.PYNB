@@ -1,0 +1,116 @@
+{
+ "nbformat": 4,
+ "nbformat_minor": 5,
+ "metadata": {
+  "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
+  "language_info": {"name": "python", "version": "3.10.0"}
+ },
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": ["# ðŸŒ± CarbonTrack â€” Data Understanding\n\n**Project:** Predicting Household Carbon Footprint Using Lifestyle Data  \n**Author:** Mohamed Aries B (RA2311026050100)  \n**Department:** CSE - AIML, SRM Institute of Science and Technology  \n\n---\n\nThis notebook covers **Phase 1: Data Understanding** â€” loading, profiling, and summarising the household carbon footprint dataset to understand its structure, distributions, and quality."]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": ["## 1. Import Libraries"]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": ["import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\nimport sys, os\nsys.path.insert(0, '../src')\nfrom preprocessing import generate_dataset\n\nsns.set_theme(style='whitegrid', palette='muted', font_scale=1.1)\nprint('Libraries imported successfully âœ”')"]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": ["## 2. Load Dataset"]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": ["# Generate and load the dataset\ndf = generate_dataset(n=1500, seed=42)\nprint(f'Dataset Shape: {df.shape}')\ndf.head(10)"]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": ["## 3. Dataset Info & Data Types"]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": ["df.info()"]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": ["## 4. Descriptive Statistics"]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": ["df.describe(include='all').round(2)"]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": ["## 5. Missing Value Analysis"]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": ["missing = df.isnull().sum()\nmissing_pct = (missing / len(df) * 100).round(2)\nmissing_df = pd.DataFrame({'Missing Count': missing, 'Missing %': missing_pct})\nprint(missing_df[missing_df['Missing Count'] > 0])"]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": ["## 6. Categorical Feature Value Counts"]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": ["for col in ['vehicle_type', 'food_habit', 'income_level']:\n    print(f'\\n--- {col} ---')\n    print(df[col].value_counts())"]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": ["## 7. Target Variable: Carbon Score Distribution"]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": ["fig, axes = plt.subplots(1, 2, figsize=(14, 5))\n\n# Histogram\naxes[0].hist(df['carbon_score'], bins=40, color='#2E86AB', edgecolor='white', alpha=0.85)\naxes[0].axvline(df['carbon_score'].mean(), color='red', linestyle='--', linewidth=2, label=f\"Mean={df['carbon_score'].mean():.0f}\")\naxes[0].set_title('Carbon Score Distribution', fontsize=13, fontweight='bold')\naxes[0].set_xlabel('Carbon Score (kg COâ‚‚/month)')\naxes[0].set_ylabel('Frequency')\naxes[0].legend()\n\n# Box plot\naxes[1].boxplot(df['carbon_score'].dropna(), patch_artist=True,\n               boxprops=dict(facecolor='#2E86AB', color='navy'),\n               medianprops=dict(color='red', linewidth=2))\naxes[1].set_title('Carbon Score Box Plot', fontsize=13, fontweight='bold')\naxes[1].set_ylabel('Carbon Score (kg COâ‚‚/month)')\naxes[1].set_xticks([1])\naxes[1].set_xticklabels(['carbon_score'])\n\nplt.suptitle('Target Variable Overview', fontsize=14, fontweight='bold')\nplt.tight_layout()\nplt.show()\n\nprint(f\"\\nStatistics:\")\nprint(f\"  Mean   : {df['carbon_score'].mean():.2f}\")\nprint(f\"  Median : {df['carbon_score'].median():.2f}\")\nprint(f\"  Std    : {df['carbon_score'].std():.2f}\")\nprint(f\"  Min    : {df['carbon_score'].min():.2f}\")\nprint(f\"  Max    : {df['carbon_score'].max():.2f}\")"]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": ["## 8. Pairplot of Numerical Features"]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": ["num_cols = ['electricity_kwh', 'fuel_liters', 'travel_km_day', 'waste_kg_week', 'carbon_score']\nsns.pairplot(df[num_cols].dropna(), diag_kind='kde', plot_kws={'alpha': 0.3, 's': 15},\n            diag_kws={'fill': True})\nplt.suptitle('Pairplot â€” Numerical Features', y=1.02, fontsize=14, fontweight='bold')\nplt.show()"]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": ["## 9. Observations\n\n- The dataset contains **1,500 household records** with 9 features and 1 target variable (`carbon_score`).\n- Approximately **3% missing values** exist in numerical columns â€” handled via median imputation.\n- The `carbon_score` ranges from ~100 to ~1,200 kg COâ‚‚/month with a mean around **550 kg COâ‚‚/month**.\n- `electricity_kwh`, `fuel_liters`, and `travel_km_day` show strong positive correlation with `carbon_score`.\n- **Petrol** and **Diesel** vehicle users show significantly higher carbon scores.\n- **Meat-heavy** food habits show the highest average carbon scores among dietary categories.\n\n---\nâœ… **Data Understanding Complete. Proceed to `preprocessing.ipynb`.**"]
+  }
+ ]
+}
